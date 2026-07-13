@@ -884,15 +884,49 @@ Begin{
                     "HOST_END_TIMESTAMP$" {$hostEnd = $nHPTN_Item."#text"}
                     }
                 }
-                # Convert seconds to milliseconds
-                $hostStart = $([int]$hostStart*1000)
-                $hostEnd =  if($hostEnd){$([int]$hostEnd*1000)}else{$null}
-                # Create duration and convert milliseconds to nano seconds
-                $duration =  $(($hostEnd - $hostStart)*1000000)
+                # When HOST_START_TIMESTAMP is present (regular scans), convert epoch to ISO.
+                # When it is absent (e.g. webapp scans), fall back to the current time so that
+                # documents are visible in Kibana's default time-range filter instead of
+                # landing in 1970-01-01 (epoch 0) where they are effectively invisible.
+                if ($hostStart) {
+                    # Convert seconds to milliseconds
+                    $hostStartMs = $([int]$hostStart*1000)
+                    $hostEndMs = if($hostEnd){$([int]$hostEnd*1000)}else{$null}
+                    # Create duration and convert milliseconds to nano seconds
+                    $duration = if($hostEndMs){$(($hostEndMs - $hostStartMs)*1000000)}else{$null}
+                    # Convert start and end dates to ISO
+                    $hostStart = convertEpochSecondsToISO $hostStartMs
+                    $hostEnd = if($hostEndMs){convertEpochSecondsToISO $hostEndMs}else{$null}
+                } else {
+                    $hostStart = Get-Date -Format "o"
+                    $hostEnd = $null
+                    $duration = $null
+                }
 
-                # Convert start and end dates to ISO
-                $hostStart = convertEpochSecondsToISO $hostStart
-                $hostEnd = if($hostEnd){convertEpochSecondsToISO $hostEnd}else{$null}
+                # Extract URL and display text from webapp-style plugin_output JSON.
+                # Many Nessus Web Application Scanner findings embed a JSON object such as:
+                #   {"output":"<text>","url":"https://..."}
+                # When that structure is detected we surface the URL as a dedicated field and
+                # store only the human-readable text in nessus.plugin.output.
+                # If parsing fails we silently keep the raw string – no hard-fail.
+                $webappUrl = $null
+                $pluginOutputDisplay = $r.plugin_output
+                if ($r.plugin_output) {
+                    try {
+                        $parsedPluginOutput = $r.plugin_output | ConvertFrom-Json -ErrorAction Stop
+                        if ($null -ne $parsedPluginOutput.url) {
+                            $webappUrl = $parsedPluginOutput.url
+                        }
+                        if ($null -ne $parsedPluginOutput.output) {
+                            $pluginOutputDisplay = $parsedPluginOutput.output
+                        }
+                    } catch {
+                        # Not JSON – keep raw plugin_output as-is
+                    }
+                }
+
+                # Derive scanner subtype so webapp findings can be filtered independently
+                $scannerType = if ($r.pluginFamily -eq "Web Applications" -or $null -ne $webappUrl) { "nessus_webapp" } else { "nessus" }
 
                 $obj = [PSCustomObject]@{
                     "@timestamp" = $hostStart # Remove later for at ingest enrichment
@@ -970,10 +1004,13 @@ Begin{
                             "name" = $r.pluginName
                             "publication_date" = $r.plugin_publication_date
                             "type" = $r.plugin_type
-                            "output" = $r.plugin_output
+                            "output" = $pluginOutputDisplay
                             "filename" = $r.fname
                             "modification_date" = if($r.plugin_modification_date){$r.plugin_modification_date}else{$null}
                             "script_version" = if($r.script_version){$r.script_version}else{$null}
+                        }
+                        "scanner" = [PSCustomObject]@{
+                            "type" = $scannerType
                         }
                         "vpr_score" = if($r.vpr_score){$r.vpr_score}else{$null}
                         "exploit_code_maturity" = if($r.exploit_code_maturity){$r.exploit_code_maturity}else{$null}
@@ -1012,6 +1049,9 @@ Begin{
                         "score" = [PSCustomObject]@{
                             "base" = $r.cvss_base_score
                             "temporal" = $r.cvss_temporal_score
+                        }
+                        "target" = [PSCustomObject]@{
+                            "url" = $webappUrl
                         }
                     }
 
@@ -1073,6 +1113,9 @@ Begin{
                 $macAddr = $null
                 $hostStart = $null
                 $hostEnd = $null
+                $webappUrl = $null
+                $pluginOutputDisplay = $null
+                $scannerType = $null
 
             }
         }

@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<NessusClientData_v2>
+  <Report name="Regular Vuln Scan 2026">
+    <!-- Standard host-based vulnerability scan with full host properties -->
+    <ReportHost name="192.168.1.100">
+      <HostProperties>
+        <tag name="host-ip">192.168.1.100</tag>
+        <tag name="hostname">myserver.example.com</tag>
+        <tag name="HOST_START_TIMESTAMP">1720000000</tag>
+        <tag name="HOST_END_TIMESTAMP">1720001000</tag>
+        <tag name="operating-system">Linux Kernel 5.15</tag>
+        <tag name="Credentialed_Scan">true</tag>
+      </HostProperties>
+      <ReportItem port="22" svc_name="ssh" protocol="tcp" severity="2"
+                  pluginID="70657"
+                  pluginName="SSH Weak Algorithms Supported"
+                  pluginFamily="General">
+        <description>The remote SSH server is configured to allow weak encryption algorithms or no algorithm at all.</description>
+        <risk_factor>Medium</risk_factor>
+        <synopsis>The remote SSH server is configured to allow weak encryption algorithms.</synopsis>
+        <solution>Contact the vendor or consult product documentation to disable CBC mode cipher encryption, and enable CTR or GCM cipher mode encryption.</solution>
+        <plugin_output>The following weak client-to-server encryption algorithms are supported: arcfour</plugin_output>
+        <plugin_publication_date>2013/10/25</plugin_publication_date>
+        <plugin_modification_date>2023/01/12</plugin_modification_date>
+        <plugin_type>remote</plugin_type>
+        <see_also>https://tools.ietf.org/html/rfc4253</see_also>
+      </ReportItem>
+    </ReportHost>
+  </Report>
+</NessusClientData_v2>
