@@ -928,6 +928,14 @@ Begin{
                 # Derive scanner subtype so webapp findings can be filtered independently
                 $scannerType = if ($r.pluginFamily -eq "Web Applications" -or $null -ne $webappUrl) { "nessus_webapp" } else { "nessus" }
 
+                # For webapp scans the ReportHost name is the scanned URL (e.g. "https://www.example.com/path/").
+                # Extract just the hostname so that host.name holds a plain hostname rather than a full URL.
+                $hostnameFromUrl = if ($n.name -match '^https?://') {
+                    try { ([System.Uri]$n.name).Host } catch { ($n.name -replace '^https?://', '' -replace '/.*$', '').ToLower() }
+                } else {
+                    $null
+                }
+
                 $obj = [PSCustomObject]@{
                     "@timestamp" = $hostStart # Remove later for at ingest enrichment
                     "destination" = [PSCustomObject]@{
@@ -950,8 +958,8 @@ Begin{
                     "host" = [PSCustomObject]@{
                         "ip" = $ip
                         "mac" = (@(if($macAddr){($macAddr.Split([Environment]::NewLine))}else{$null}))
-                        "hostname" = if($fqdn -notmatch "sources" -and ($fqbn)){($fqdn).ToLower()}elseif($rdns){($rdns).ToLower()}elseif($hostname){$hostname.ToLower()}elseif($netbiosname){$netbiosname.ToLower()}else{$null} # Remove later for at ingest enrichment # Also, added a check for an extra "sources" sub field added to the fqbn field
-                        "name" = if($fqdn -notmatch "sources" -and ($fqbn)){($fqdn).ToLower()}elseif($rdns){($rdns).ToLower()}elseif($hostname){$hostname.ToLower()}elseif($netbiosname){$netbiosname.ToLower()}else{$null} # Remove later for at ingest enrichment # Also, added a check for an extra "sources" sub field added to the fqbn field
+                        "hostname" = if($fqdn -notmatch "sources" -and ($fqbn)){($fqdn).ToLower()}elseif($rdns){($rdns).ToLower()}elseif($hostname){$hostname.ToLower()}elseif($netbiosname){$netbiosname.ToLower()}elseif($hostnameFromUrl){$hostnameFromUrl}else{$null} # Remove later for at ingest enrichment # Also, added a check for an extra "sources" sub field added to the fqbn field
+                        "name" = if($fqdn -notmatch "sources" -and ($fqbn)){($fqdn).ToLower()}elseif($rdns){($rdns).ToLower()}elseif($hostname){$hostname.ToLower()}elseif($netbiosname){$netbiosname.ToLower()}elseif($hostnameFromUrl){$hostnameFromUrl}else{$null} # Remove later for at ingest enrichment # Also, added a check for an extra "sources" sub field added to the fqbn field
                         "os" = [PSCustomObject]@{
                             "family" = $os
                             "full" = @(if($opersys){$opersys.Split("`n`r")}else{$null})
@@ -1116,6 +1124,7 @@ Begin{
                 $webappUrl = $null
                 $pluginOutputDisplay = $null
                 $scannerType = $null
+                $hostnameFromUrl = $null
 
             }
         }

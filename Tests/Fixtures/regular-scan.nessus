@@ -16,6 +16,7 @@
                   pluginName="SSH Weak Algorithms Supported"
                   pluginFamily="General">
         <description>The remote SSH server is configured to allow weak encryption algorithms or no algorithm at all.</description>
+        <cve>CVE-2013-5028</cve>
         <risk_factor>Medium</risk_factor>
         <synopsis>The remote SSH server is configured to allow weak encryption algorithms.</synopsis>
         <solution>Contact the vendor or consult product documentation to disable CBC mode cipher encryption, and enable CTR or GCM cipher mode encryption.</solution>

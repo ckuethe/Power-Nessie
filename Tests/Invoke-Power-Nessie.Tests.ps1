@@ -107,13 +107,20 @@ BeforeAll {
             "nessus"
         }
 
+        # --- Derive host.name from URL when the ReportHost name is a URL (webapp scans) ---
+        $hostnameFromUrl = if ($ReportHost.name -match '^https?://') {
+            try { ([System.Uri]$ReportHost.name).Host } catch { ($ReportHost.name -replace '^https?://', '' -replace '/.*$', '').ToLower() }
+        } else {
+            $null
+        }
+
         # --- Build and return document object ---
         return [PSCustomObject]@{
             "@timestamp"    = $hostStartIso
             "destination"   = [PSCustomObject]@{ "port" = $([Uint16]$ReportItem.port) }
             "host"          = [PSCustomObject]@{
                 "ip"   = $ip
-                "name" = if ($fqdn) { $fqdn.ToLower() } elseif ($rdns) { $rdns.ToLower() } elseif ($hostname) { $hostname.ToLower() } elseif ($netbiosname) { $netbiosname.ToLower() } else { $null }
+                "name" = if ($fqdn) { $fqdn.ToLower() } elseif ($rdns) { $rdns.ToLower() } elseif ($hostname) { $hostname.ToLower() } elseif ($netbiosname) { $netbiosname.ToLower() } elseif ($hostnameFromUrl) { $hostnameFromUrl } else { $null }
             }
             "nessus"        = [PSCustomObject]@{
                 "name_of_host" = $ReportHost.name.ToLower()
@@ -125,6 +132,8 @@ BeforeAll {
                 "scanner"      = [PSCustomObject]@{ "type" = $scannerType }
             }
             "vulnerability" = [PSCustomObject]@{
+                "id"             = @(if ($ReportItem.cve) { $ReportItem.cve } else { $null })
+                "classification" = @(if ($ReportItem.cve) { "CVE" } else { $null })
                 "report_id" = $ReportName
                 "category"  = $ReportItem.pluginFamily
                 "target"    = [PSCustomObject]@{ "url" = $webappUrl }
@@ -186,6 +195,18 @@ Describe "Webapp scan – JSON plugin_output with URL" {
 
     It "host.ip is null (webapp scans have no host-ip tag)" {
         $script:Doc.host.ip | Should -BeNullOrEmpty
+    }
+
+    It "host.name is derived from the scanned URL (protocol stripped)" {
+        $script:Doc.host.name | Should -Be "www.example.com"
+    }
+
+    It "vulnerability.id contains the CVE identifier from the finding" {
+        $script:Doc.vulnerability.id | Should -Contain "CVE-2025-29927"
+    }
+
+    It "vulnerability.classification is 'CVE' when CVEs are present" {
+        $script:Doc.vulnerability.classification | Should -Contain "CVE"
     }
 }
 
@@ -261,6 +282,14 @@ Describe "Regular vulnerability scan – existing behaviour unchanged" {
     It "vulnerability.report_id matches the report name" {
         $script:Doc.vulnerability.report_id | Should -Be "Regular Vuln Scan 2026"
     }
+
+    It "vulnerability.id is populated from the CVE field in the finding" {
+        $script:Doc.vulnerability.id | Should -Contain "CVE-2013-5028"
+    }
+
+    It "vulnerability.classification is 'CVE' when CVEs are present" {
+        $script:Doc.vulnerability.classification | Should -Contain "CVE"
+    }
 }
 
 # ===========================================================================
@@ -289,5 +318,17 @@ Describe "Webapp URL extraction helper logic (unit)" {
         $result = if ($hostStart) { "should-not-be-reached" } else { Get-Date -Format "o" }
         $ts = [datetime]::Parse($result)
         $ts.Year | Should -BeGreaterThan 1970
+    }
+
+    It "strips protocol from URL to derive host.name (http)" {
+        $url = "http://www.example.com"
+        $hostname = try { ([System.Uri]$url).Host } catch { ($url -replace '^https?://', '' -replace '/.*$', '').ToLower() }
+        $hostname | Should -Be "www.example.com"
+    }
+
+    It "strips protocol and path from URL to derive host.name (https with path)" {
+        $url = "https://www.example.com/my-webapp/"
+        $hostname = try { ([System.Uri]$url).Host } catch { ($url -replace '^https?://', '' -replace '/.*$', '').ToLower() }
+        $hostname | Should -Be "www.example.com"
     }
 }
