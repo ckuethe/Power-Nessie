@@ -116,6 +116,13 @@ BeforeAll {
         }
 
         # --- Build and return document object ---
+        # Collect CVE IDs from the <cve> element and, as a fallback, from <cvss_score_source>
+        # when it holds a CVE identifier.
+        $cveIds = @(
+            @(if ($ReportItem.cve) { $ReportItem.cve } else { @() }) +
+            @(if ($ReportItem.cvss_score_source -match '^CVE-\d+-\d+$') { $ReportItem.cvss_score_source } else { @() })
+        ) | Select-Object -Unique | Where-Object { $_ }
+
         return [PSCustomObject]@{
             "@timestamp"    = $hostStartIso
             "destination"   = [PSCustomObject]@{ "port" = $([Uint16]$ReportItem.port) }
@@ -133,8 +140,8 @@ BeforeAll {
                 "scanner"      = [PSCustomObject]@{ "type" = $scannerType }
             }
             "vulnerability" = [PSCustomObject]@{
-                "id"             = @($ReportItem.cve | Where-Object { $_ })
-                "classification" = @(if ($ReportItem.cve) { "CVE" } else { $null })
+                "id"             = @(if ($cveIds) { $cveIds } else { $null })
+                "classification" = @(if ($cveIds) { "CVE" } else { $null })
                 "report_id" = $ReportName
                 "category"  = $ReportItem.pluginFamily
                 "target"    = [PSCustomObject]@{ "url" = $webappUrl }
@@ -290,6 +297,36 @@ Describe "Regular vulnerability scan – existing behaviour unchanged" {
 
     It "vulnerability.classification is 'CVE' when CVEs are present" {
         $script:Doc.vulnerability.classification | Should -Contain "CVE"
+    }
+}
+
+# ===========================================================================
+Describe "Regular scan – CVE sourced from cvss_score_source (no <cve> element)" {
+
+    BeforeAll {
+        $host_node   = $script:RegularXml.NessusClientData_v2.Report.ReportHost
+        $report_item = @($host_node.ReportItem) | Where-Object { $_.pluginID -eq "189760" } | Select-Object -First 1
+        $script:Doc  = Build-NessusDocument `
+            -ReportHost  $host_node `
+            -ReportItem  $report_item `
+            -ReportName  "Regular Vuln Scan 2026" `
+            -FileProcessed "regular-scan.nessus"
+    }
+
+    It "document is emitted (no exception)" {
+        $script:Doc | Should -Not -BeNullOrEmpty
+    }
+
+    It "vulnerability.id is populated from cvss_score_source when no <cve> element is present" {
+        $script:Doc.vulnerability.id | Should -Contain "CVE-2024-2511"
+    }
+
+    It "vulnerability.classification is 'CVE' when CVE comes from cvss_score_source" {
+        $script:Doc.vulnerability.classification | Should -Contain "CVE"
+    }
+
+    It "scanner type is 'nessus' (not a webapp finding)" {
+        $script:Doc.nessus.scanner.type | Should -Be "nessus"
     }
 }
 

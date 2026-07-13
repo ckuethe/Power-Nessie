@@ -937,6 +937,14 @@ Begin{
                     $null
                 }
 
+                # Collect CVE IDs from the <cve> element and, as a fallback, from <cvss_score_source>
+                # when it holds a CVE identifier (Nessus sometimes omits <cve> but populates
+                # cvss_score_source with the authoritative CVE ID for the finding).
+                $cveIds = @(
+                    @(if ($r.cve) { $r.cve } else { @() }) +
+                    @(if ($r.cvss_score_source -match '^CVE-\d+-\d+$') { $r.cvss_score_source } else { @() })
+                ) | Select-Object -Unique | Where-Object { $_ }
+
                 $obj = [PSCustomObject]@{
                     "@timestamp" = $hostStart # Remove later for at ingest enrichment
                     "destination" = [PSCustomObject]@{
@@ -954,7 +962,7 @@ Begin{
                         "provider" = "Nessus" # Remove later for at ingest enrichment
                         "module" = "Invoke-Power-Nessie"
                         "severity" = $([Uint16]$r.severity) # Remove later for at ingest enrichment
-                        "url" = (@(if($r.cve){($r.cve | ForEach-Object {"https://cve.mitre.org/cgi-bin/cvename.cgi?name=$_"})}else{$null})) # Remove later for at ingest enrichment
+                        "url" = (@(if($cveIds){($cveIds | ForEach-Object {"https://cve.mitre.org/cgi-bin/cvename.cgi?name=$_"})}else{$null})) # Remove later for at ingest enrichment
                     }
                     "host" = [PSCustomObject]@{
                         "ip" = $ip
@@ -976,7 +984,7 @@ Begin{
                         }
                     }
                     "nessus" = [PSCustomObject]@{
-                        "cve" = (@(if($r.cve){($r.cve).ToLower()}else{$null}))
+                        "cve" = (@(if($cveIds){($cveIds | ForEach-Object { $_.ToLower() })}else{$null}))
                         "in_the_news" = if($r.in_the_news){$r.in_the_news}else{$null}
                         "solution" = $r.solution
                         "synopsis" = $r.synopsis
@@ -1047,14 +1055,14 @@ Begin{
                         "application" = $r.svc_name
                     }
                     "vulnerability" = [PSCustomObject]@{
-                        "id" = (@(if($r.cve){($r.cve)}else{$null}))
+                        "id" = (@(if($cveIds){$cveIds}else{$null}))
                         "category" = $r.pluginFamily
                         "description" = $r.description
                         "severity" = $r.risk_factor
                         "reference" = (@(if($r.see_also){($r.see_also.Split("`n"))}else{$null}))
                         "report_id" = $reportName
                         "module" = $r.pluginName
-                        "classification" = (@(if($r.cve){("CVE")}else{$null}))
+                        "classification" = (@(if($cveIds){("CVE")}else{$null}))
                         "score" = [PSCustomObject]@{
                             "base" = $r.cvss_base_score
                             "temporal" = $r.cvss_temporal_score

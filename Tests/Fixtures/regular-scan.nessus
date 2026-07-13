@@ -26,6 +26,22 @@
         <plugin_type>remote</plugin_type>
         <see_also>https://tools.ietf.org/html/rfc4253</see_also>
       </ReportItem>
+      <!-- Finding where the CVE identifier is in cvss_score_source, not in a <cve> element -->
+      <ReportItem port="443" svc_name="https" protocol="tcp" severity="3"
+                  pluginID="189760"
+                  pluginName="OpenSSL 3.0.x &lt; 3.0.14 Multiple Vulnerabilities"
+                  pluginFamily="General">
+        <description>According to its self-reported version number, the remote host has an installation of OpenSSL that is affected by multiple vulnerabilities.</description>
+        <cvss3_base_score>7.5</cvss3_base_score>
+        <cvss3_vector>CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H</cvss3_vector>
+        <cvss_score_source>CVE-2024-2511</cvss_score_source>
+        <risk_factor>High</risk_factor>
+        <synopsis>The remote host is running an unsupported version of OpenSSL.</synopsis>
+        <solution>Upgrade to OpenSSL 3.0.14 or later.</solution>
+        <plugin_output>OpenSSL version 3.0.7 detected.</plugin_output>
+        <plugin_publication_date>2024/01/30</plugin_publication_date>
+        <plugin_type>remote</plugin_type>
+      </ReportItem>
     </ReportHost>
   </Report>
 </NessusClientData_v2>
