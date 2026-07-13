@@ -6,8 +6,8 @@
       <HostProperties>
         <tag name="host-ip">192.168.1.100</tag>
         <tag name="hostname">myserver.example.com</tag>
-        <tag name="HOST_START_TIMESTAMP">1720000000</tag><!-- 2024-07-03T02:13:20 UTC -->
-        <tag name="HOST_END_TIMESTAMP">1720001000</tag><!-- 2024-07-03T02:30:00 UTC -->
+        <tag name="HOST_START_TIMESTAMP">1720000000</tag><!-- 2024-07-03T09:46:40 UTC -->
+        <tag name="HOST_END_TIMESTAMP">1720001000</tag><!-- 2024-07-03T10:03:20 UTC -->
         <tag name="operating-system">Linux Kernel 5.15</tag>
         <tag name="Credentialed_Scan">true</tag>
       </HostProperties>

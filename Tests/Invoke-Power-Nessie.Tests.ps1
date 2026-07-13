@@ -1,7 +1,7 @@
 #Requires -Modules @{ModuleName='Pester';ModuleVersion='5.0.0'}
 <#
 .SYNOPSIS
-    Pester tests for Invoke-Power-Nessie webapp scan support.
+    Pester tests for Invoke-Power-Nessie web application scan support.
 
 .DESCRIPTION
     Tests the Nessus XML parsing and document-building logic introduced to
