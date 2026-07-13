@@ -109,7 +109,8 @@ BeforeAll {
 
         # --- Derive host.name from URL when the ReportHost name is a URL (webapp scans) ---
         $hostnameFromUrl = if ($ReportHost.name -match '^https?://') {
-            try { ([System.Uri]$ReportHost.name).Host } catch { ($ReportHost.name -replace '^https?://', '' -replace '/.*$', '').ToLower() }
+            $h = try { ([System.Uri]$ReportHost.name).Host } catch { $ReportHost.name -replace '^https?://', '' -replace '/.*$', '' }
+            if ($h) { $h.ToLower() } else { $null }
         } else {
             $null
         }
@@ -132,7 +133,7 @@ BeforeAll {
                 "scanner"      = [PSCustomObject]@{ "type" = $scannerType }
             }
             "vulnerability" = [PSCustomObject]@{
-                "id"             = @(if ($ReportItem.cve) { $ReportItem.cve } else { $null })
+                "id"             = @($ReportItem.cve | Where-Object { $_ })
                 "classification" = @(if ($ReportItem.cve) { "CVE" } else { $null })
                 "report_id" = $ReportName
                 "category"  = $ReportItem.pluginFamily

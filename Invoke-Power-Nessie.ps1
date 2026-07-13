@@ -931,7 +931,8 @@ Begin{
                 # For webapp scans the ReportHost name is the scanned URL (e.g. "https://www.example.com/path/").
                 # Extract just the hostname so that host.name holds a plain hostname rather than a full URL.
                 $hostnameFromUrl = if ($n.name -match '^https?://') {
-                    try { ([System.Uri]$n.name).Host } catch { ($n.name -replace '^https?://', '' -replace '/.*$', '').ToLower() }
+                    $h = try { ([System.Uri]$n.name).Host } catch { $n.name -replace '^https?://', '' -replace '/.*$', '' }
+                    if ($h) { $h.ToLower() } else { $null }
                 } else {
                     $null
                 }
