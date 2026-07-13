@@ -24,9 +24,12 @@ BeforeAll {
     # -----------------------------------------------------------------------
     # Replicate the helper function used inside Invoke-Import_Nessus_To_Elasticsearch
     # -----------------------------------------------------------------------
+    # Replicates the helper from Invoke-Power-Nessie.ps1.
+    # Despite the name, the input ($epochTimeMillis) must be in milliseconds –
+    # the caller pre-multiplies seconds × 1000 before passing the value.
     function convertEpochSecondsToISO {
-        Param($epochTime)
-        $dateTime = [System.DateTimeOffset]::FromUnixTimeMilliseconds($epochTime).DateTime
+        Param($epochTimeMillis)
+        $dateTime = [System.DateTimeOffset]::FromUnixTimeMilliseconds($epochTimeMillis).DateTime
         $newTime = Get-Date $dateTime -Format "o"
         return $newTime
     }
