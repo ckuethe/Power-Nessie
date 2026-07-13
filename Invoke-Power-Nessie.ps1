@@ -890,13 +890,13 @@ Begin{
                 # landing in 1970-01-01 (epoch 0) where they are effectively invisible.
                 if ($hostStart) {
                     # Convert seconds to milliseconds
-                    $hostStartMs = $([int]$hostStart*1000)
-                    $hostEndMs = if($hostEnd){$([int]$hostEnd*1000)}else{$null}
-                    # Create duration and convert milliseconds to nano seconds
-                    $duration = if($hostEndMs){$(($hostEndMs - $hostStartMs)*1000000)}else{$null}
+                    $hostStartMillis = $([int]$hostStart*1000)
+                    $hostEndMillis = if($hostEnd){$([int]$hostEnd*1000)}else{$null}
+                    # Create duration: convert milliseconds to nanoseconds
+                    $duration = if($hostEndMillis){$(($hostEndMillis - $hostStartMillis)*1000000)}else{$null}
                     # Convert start and end dates to ISO
-                    $hostStart = convertEpochSecondsToISO $hostStartMs
-                    $hostEnd = if($hostEndMs){convertEpochSecondsToISO $hostEndMs}else{$null}
+                    $hostStart = convertEpochSecondsToISO $hostStartMillis
+                    $hostEnd = if($hostEndMillis){convertEpochSecondsToISO $hostEndMillis}else{$null}
                 } else {
                     $hostStart = Get-Date -Format "o"
                     $hostEnd = $null
