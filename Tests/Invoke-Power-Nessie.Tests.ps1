@@ -25,9 +25,9 @@ BeforeAll {
     # Replicate the helper function used inside Invoke-Import_Nessus_To_Elasticsearch
     # -----------------------------------------------------------------------
     # Replicates the helper from Invoke-Power-Nessie.ps1.
-    # Despite the name, the input ($epochTimeMillis) must be in milliseconds –
-    # the caller pre-multiplies seconds × 1000 before passing the value.
-    function convertEpochSecondsToISO {
+    # The input must be in milliseconds – the caller pre-multiplies
+    # seconds × 1000 before passing the value.
+    function convertEpochMillisecondsToISO {
         Param($epochTimeMillis)
         $dateTime = [System.DateTimeOffset]::FromUnixTimeMilliseconds($epochTimeMillis).DateTime
         $newTime = Get-Date $dateTime -Format "o"
@@ -79,8 +79,8 @@ BeforeAll {
             $hostStartMs = $([int]$hostStart * 1000)
             $hostEndMs   = if ($hostEnd) { $([int]$hostEnd * 1000) } else { $null }
             $duration    = if ($hostEndMs) { $(($hostEndMs - $hostStartMs) * 1000000) } else { $null }
-            $hostStartIso = convertEpochSecondsToISO $hostStartMs
-            $hostEndIso   = if ($hostEndMs) { convertEpochSecondsToISO $hostEndMs } else { $null }
+            $hostStartIso = convertEpochMillisecondsToISO $hostStartMs
+            $hostEndIso   = if ($hostEndMs) { convertEpochMillisecondsToISO $hostEndMs } else { $null }
         } else {
             $hostStartIso = Get-Date -Format "o"
             $hostEndIso   = $null
@@ -273,7 +273,7 @@ Describe "Webapp URL extraction helper logic (unit)" {
         $parsed.output | Should -Be "Version 14.2.15"
     }
 
-    It "does not throw on non-JSON plugin_output" {
+    It "ConvertFrom-Json throws on non-JSON input (which the main code catches and handles gracefully)" {
         { "plain text" | ConvertFrom-Json -ErrorAction Stop } | Should -Throw
     }
 
